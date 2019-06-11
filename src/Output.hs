@@ -1,5 +1,5 @@
 module Output (
-    PrettyPrinter
+    PrettyPrinter(..)
 ) where
 
 import Protolude

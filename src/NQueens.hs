@@ -1,22 +1,30 @@
 module NQueens (
-    Board1
+    Board1(..),
+
+    -- board stuff
+    makeBoard1,
+
+    -- Naive matrix stuff
+    extractDiagonal,
+    getMatrixValue
 ) where
 
 import Output (PrettyPrinter, prettyPrint)
+import Indexed
 
 import qualified Data.Text as T
-import Numerics.Natural
-import Protolude
+import Numeric.Natural
+import Protolude hiding (get, set)
 
 newtype Board1 = B1 [[Bool]]
 
 makeBoard1 ::
     Natural
     -> Board1
-makeBoard1 n = B1 $ replicate n (replicate n False)
+makeBoard1 n = B1 $ replicateN n (replicateN n False)
 
 instance PrettyPrinter Board1 where
-    prettyPrint (B1 rows) = T.intercalate '\n' $ map rowToLine rows
+    prettyPrint (B1 rows) = T.intercalate "\n" $ map rowToLine rows
         where
             rowToLine = T.pack . map toCell
             toCell True = 'Q'
@@ -26,31 +34,52 @@ isValidBoard1 ::
     Board1
     -> Bool
 isValidBoard1 (B1 rows) = let
-    allRowsValid = map checkRow rows
-    allColumnsValid = map checkRow $ transpose rows
-    allDiagonalsValid = map checkDiags rows && map checkDiags (transpose rows)
+    allRowsValid = all identity $ map checkRow rows
+    allColumnsValid = all identity . map checkRow $ transpose rows
+    allDiagonalsValid = checkDiags rows && checkDiags (transpose rows)
     in allRowsValid && allColumnsValid && allDiagonalsValid
     where
-        checkRow = length (== 1) . filter id
-        checkDiags = map checkDiagonal [0..n] rows &&
-                     map checkDiagonal [0..n] (transpose rows)
-            where
-                checkDiagonal start rows' = let
-                    xPoints = map (+ start) [0..(n-start)-1]
-                    yPoints = [0..]
-                    points = zip xPoints yPoints
-                    values = map (\(x,y) -> (rows' !! y) !! x) points
-                    in checkRow values
-
+        checkRow :: [Bool] -> Bool
+        checkRow = (== 1) . length . filter identity
+        checkDiags :: [[Bool]] -> Bool
+        checkDiags = undefined
 
 nQueens1 ::
     Natural
     -> [Board1]
 nQueens1 n = let
-    allBoards =
-    in filter isValidBoard1 allBoard
+    allBoards = undefined
+    in filter isValidBoard1 allBoards
     where
         emptyBoard = makeBoard1 n
-        placeQueen row col
 
 
+replicateN :: Integral n =>
+    n
+    -> a
+    -> [a]
+replicateN n = replicate (fromIntegral n)
+
+-- | Starting from the given x coordinate, extract the diagonal from the matrix. This assumes that
+-- it is a rectangular matrix, not a jagged array. The matrix is encoded in the typical fashion, columns in the
+-- inner lists, rows on the outer
+extractDiagonal ::
+    Natural
+    -> [[a]]
+    -> [a]
+extractDiagonal startingXCoord grid
+    | null grid = []
+    | fromIntegral startingXCoord >= length (headDef [] grid) = []
+    | otherwise = let
+        maxY = fromIntegral $ max ( length grid ) (fromIntegral startingXCoord)
+        indices = [startingXCoord..maxY] `zip` [0..maxY]
+        in mapMaybe (getMatrixValue grid) indices
+
+-- | Extract a single value from a matrix in list representation
+getMatrixValue ::
+    [[a]]
+    -> (Natural, Natural)
+    -> Maybe a
+getMatrixValue matrix point = do
+    row <- matrix `get` snd point
+    row `get` fst point

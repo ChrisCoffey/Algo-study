@@ -22,6 +22,7 @@ description:         Please see the README on GitHub at <https://github.com/Chri
 dependencies:
 - base >= 4.7 && < 5
 - protolude
+- text
 
 default-extensions:
   MultiParamTypeClasses
@@ -38,6 +39,7 @@ default-extensions:
   GADTs
   ConstraintKinds
   NoImplicitPrelude
+  ScopedTypeVariables
 
 library:
   source-dirs: src
@@ -57,6 +59,9 @@ tests:
   algo-study-test:
     main:                Spec.hs
     source-dirs:         test
+    other-modules:
+        IndexedTests
+        NQueensTests
     ghc-options:
     - -threaded
     - -rtsopts
@@ -64,7 +69,8 @@ tests:
     dependencies:
     - algo-study
     - tasty
-    - tasty-quickcheck
-    - Quickcheck
-    - HUnit
     - tasty-hunit
+    - tasty-quickcheck
+    - quickcheck-instances
+    - QuickCheck
+    - HUnit

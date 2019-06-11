@@ -11,12 +11,12 @@ class Indexed f i where
 
 instance Indexed [] Natural where
     get xs i
-        | i >= length xs = Nothing
-        | otherwise = Just . head $ drop i xs
+        | fromIntegral i >= length xs = Nothing
+        | otherwise = headMay $ drop (fromIntegral i) xs
 
     set xs i newValue
-        | i >= length xs = Nothing
+        | fromIntegral i >= length xs = Nothing
         | otherwise = let
-            front = take i
-            back = tail $ drop i
-            in front<>(newValue:back)
+            front = take (fromIntegral i) xs
+            back = tailMay $ drop (fromIntegral i) xs
+            in (front <>) . ( newValue:) <$> back
