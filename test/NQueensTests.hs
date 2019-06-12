@@ -14,8 +14,38 @@ import Test.Tasty.QuickCheck
 
 tests :: TestTree
 tests = testGroup "N Queens" [
+    v1Tests,
     outputTests,
     helperTests
+    ]
+
+v1Tests :: TestTree
+v1Tests = testGroup "v1 N-Queens" [
+    testCase "isValidBoard1 succeeds for trivial case" $ do
+        let b = B1 [[True]]
+        isValidBoard1 b @?= True
+    ,
+    testCase "isValidBoard1 rejects row failures" $ do
+        let b = B1 [[True, True], [False, False]]
+        isValidBoard1 b @?= False
+    ,
+    testCase "isValidBoard1 rejects column failures" $ do
+        let b = B1 [[True, False], [True, False]]
+        isValidBoard1 b @?= False
+    ,
+    testCase "isValidBoard1 rejects diagonal failures" $ do
+        let b = B1 [[True]]
+        let b = B1 [[True, False], [False, True]]
+        isValidBoard1 b @?= False
+    ,
+    testCase "isValidBoard1 succeeds for moderate case" $ do
+        let b = B1 [
+                 [False,True,False,False]
+                ,[False,False,False,True]
+                ,[True,False,False,False]
+                ,[False,False,True,False]
+                ]
+        isValidBoard1 b @?= True
     ]
 
 outputTests :: TestTree

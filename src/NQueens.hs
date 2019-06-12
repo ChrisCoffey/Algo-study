@@ -1,12 +1,16 @@
 module NQueens (
     Board1(..),
+    nQueens1,
+    isValidBoard1,
 
     -- board stuff
     makeBoard1,
+    possibleRows,
 
     -- Naive matrix stuff
     extractDiagonal,
-    getMatrixValue
+    getMatrixValue,
+    rotate90Counter
 ) where
 
 import Output (PrettyPrinter, prettyPrint)
@@ -24,35 +28,55 @@ makeBoard1 ::
 makeBoard1 n = B1 $ replicateN n (replicateN n False)
 
 instance PrettyPrinter Board1 where
-    prettyPrint (B1 rows) = T.intercalate "\n" $ map rowToLine rows
+    prettyPrint (B1 rows) = let
+        board = T.unlines $ map rowToLine rows
+        in board `T.snoc` '\n'
         where
             rowToLine = T.pack . map toCell
             toCell True = 'Q'
-            toCell False = ' '
+            toCell False = '.'
 
+-- | Check if the board is valid by checking that each row, column, and diagonal contains only a single queen
 isValidBoard1 ::
     Board1
     -> Bool
 isValidBoard1 (B1 rows) = let
     allRowsValid = all identity $ map checkRow rows
     allColumnsValid = all identity . map checkRow $ transpose rows
-    allDiagonalsValid = checkDiags rows && checkDiags (transpose rows)
+    allDiagonalsValid = let
+        r1 = rotate90Counter rows
+        r2 = rotate90Counter r1
+        r3 = rotate90Counter r2
+        in checkDiags rows && checkDiags r1 && checkDiags r2 && checkDiags r3
     in allRowsValid && allColumnsValid && allDiagonalsValid
     where
         checkRow :: [Bool] -> Bool
-        checkRow = (== 1) . length . filter identity
+        checkRow = (<= 1) . length . filter identity
         checkDiags :: [[Bool]] -> Bool
-        checkDiags = undefined
+        checkDiags rs = all checkRow $ map ( `extractDiagonal` rs) [0.. fromIntegral (length rs) -1]
 
 nQueens1 ::
     Natural
     -> [Board1]
 nQueens1 n = let
-    allBoards = undefined
-    in filter isValidBoard1 allBoards
-    where
-        emptyBoard = makeBoard1 n
+    allPerms = permutations $ possibleRows n (replicateN n False)
+    asBoards = map B1 allPerms
+    in filter isValidBoard1 asBoards
 
+-- | All possible permutations for a given row of length n
+-- This considers that only a single queen may be placed on each row
+possibleRows ::
+    Natural
+    -> [Bool]
+    -> [[Bool]]
+possibleRows n emptyRow =
+    map (\idx -> fromMaybe [] $ set emptyRow idx True) [0..n -1]
+
+-- | Rotate a matrix 90 degrees counter-clockwise. Think about what this does.
+rotate90Counter ::
+    [[a]]
+    -> [[a]]
+rotate90Counter = reverse . transpose
 
 replicateN :: Integral n =>
     n
