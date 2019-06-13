@@ -21,6 +21,7 @@ import Numeric.Natural
 import Protolude hiding (get, set)
 
 newtype Board1 = B1 [[Bool]]
+    deriving (Generic, NFData)
 
 makeBoard1 ::
     Natural

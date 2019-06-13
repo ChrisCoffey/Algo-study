@@ -55,6 +55,18 @@ executables:
     dependencies:
     - algo-study
 
+benchmarks:
+  algo-study-bench:
+    main:                Main.hs
+    source-dirs:         benchmarks
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - algo-study
+    - criterion
+
 tests:
   algo-study-test:
     main:                Spec.hs

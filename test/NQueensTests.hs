@@ -52,11 +52,11 @@ outputTests :: TestTree
 outputTests = testGroup "output" [
     testCase "Empty list prints nothing" $ do
         let output = prettyPrint $ makeBoard1 0
-        output @?= ""
+        output @?= "\n"
     ,
     testCase "Prints an empty board properly" $ do
         let output = prettyPrint $ makeBoard1 8
-        output @?= "        \n        \n        \n        \n        \n        \n        \n        "
+        output @?= "........\n........\n........\n........\n........\n........\n........\n........\n\n"
     ]
 
 helperTests :: TestTree
