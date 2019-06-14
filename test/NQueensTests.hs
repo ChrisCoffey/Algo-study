@@ -6,6 +6,7 @@ import NQueens
 import Indexed
 import Output
 
+import qualified Data.Matrix as MA
 import Protolude hiding (get, set)
 import Test.QuickCheck.Instances.Natural
 import Test.Tasty
@@ -15,6 +16,7 @@ import Test.Tasty.QuickCheck
 tests :: TestTree
 tests = testGroup "N Queens" [
     v1Tests,
+    v2Tests,
     outputTests,
     helperTests
     ]
@@ -34,7 +36,6 @@ v1Tests = testGroup "v1 N-Queens" [
         isValidBoard1 b @?= False
     ,
     testCase "isValidBoard1 rejects diagonal failures" $ do
-        let b = B1 [[True]]
         let b = B1 [[True, False], [False, True]]
         isValidBoard1 b @?= False
     ,
@@ -48,6 +49,91 @@ v1Tests = testGroup "v1 N-Queens" [
         isValidBoard1 b @?= True
     ]
 
+v2Tests :: TestTree
+v2Tests = testGroup "v2 N-Queens" [
+    testCase "isValidBoard2 succeeds for trivial case" $ do
+        let b = B2 $ MA.fromLists [[True]]
+        isValidBoard2 b @?= True
+    ,
+    testCase "isValidBoard2 rejects row failures" $ do
+        let b = B2 $ MA.fromLists [[True, True], [False, False]]
+        isValidBoard2 b @?= False
+    ,
+    testCase "isValidBoard2 rejects column failures" $ do
+        let b = B2 $ MA.fromLists [[True, False], [True, False]]
+        isValidBoard2 b @?= False
+    ,
+    testCase "isValidBoard2 rejects diagonal failures" $ do
+        let b = B2 $ MA.fromLists [[True, False], [False, True]]
+        isValidBoard2 b @?= False
+    ,
+    testCase "isValidBoard2 rejects all 2x2 boards" $ do
+        let b = B2 $ MA.fromLists [[True, False],
+                                   [False, True]]
+            c = B2 $ MA.fromLists [[True, True],
+                                   [False, False]]
+            d = B2 $ MA.fromLists [[False, True],
+                                   [False, True]]
+            e = B2 $ MA.fromLists [[False, False],
+                                   [True, True]]
+            f = B2 $ MA.fromLists [[True, False],
+                                   [True, False]]
+            g = B2 $ MA.fromLists [[False, True],
+                                   [True, False]]
+        isValidBoard2 b @?= False
+        isValidBoard2 c @?= False
+        isValidBoard2 d @?= False
+        isValidBoard2 e @?= False
+        isValidBoard2 f @?= False
+        isValidBoard2 g @?= False
+    ,
+    testCase "isValidBoard2 succeeds for moderate case" $ do
+        let b = B2 $ MA.fromLists [
+                 [False,True,False,False]
+                ,[False,False,False,True]
+                ,[True,False,False,False]
+                ,[False,False,True,False]
+                ]
+        isValidBoard2 b @?= True
+    ,
+    testCase "isValidBoard2 rejects poor moderate cases" $ do
+        let b = B2 $ MA.fromLists [
+                 [False,True,False,True]
+                ,[False,False,False,False]
+                ,[True,False,False,False]
+                ,[False,False,True,False]
+                ]
+            c = B2 $ MA.fromLists [
+                 [False,True,False,False]
+                ,[False,False,True,False]
+                ,[True,False,False,False]
+                ,[False,True,False,False]
+                ]
+            d = B2 $ MA.fromLists [
+                 [True,False,False,False]
+                ,[False,False,False,True]
+                ,[True,False,False,False]
+                ,[False,False,True,False]
+                ]
+            e = B2 $ MA.fromLists [
+                 [False,True,False,False]
+                ,[False,False,False,True]
+                ,[False,True,False,False]
+                ,[False,False,True,False]
+                ]
+            f = B2 $ MA.fromLists [
+                 [False,True,False,False]
+                ,[False,False,False,True]
+                ,[False,False,True,False]
+                ,[False,False,True,False]
+                ]
+        isValidBoard2 b @?= False
+        isValidBoard2 c @?= False
+        isValidBoard2 d @?= False
+        isValidBoard2 e @?= False
+        isValidBoard2 f @?= False
+    ]
+
 outputTests :: TestTree
 outputTests = testGroup "output" [
     testCase "Empty list prints nothing" $ do
@@ -57,6 +143,10 @@ outputTests = testGroup "output" [
     testCase "Prints an empty board properly" $ do
         let output = prettyPrint $ makeBoard1 8
         output @?= "........\n........\n........\n........\n........\n........\n........\n........\n\n"
+    ,
+    testCase "Empty matrix prints nothing" $ do
+        let output = prettyPrint $ emptyBoard2 0
+        output @?= "\9484  \9488\n\9492  \9496\n"
     ]
 
 helperTests :: TestTree

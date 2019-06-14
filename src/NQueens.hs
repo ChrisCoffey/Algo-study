@@ -2,9 +2,13 @@ module NQueens (
     Board1(..),
     nQueens1,
     isValidBoard1,
+    Board2(..),
+    nQueens2,
+    isValidBoard2,
 
     -- board stuff
     makeBoard1,
+    emptyBoard2,
     possibleRows,
 
     -- Naive matrix stuff
@@ -16,9 +20,16 @@ module NQueens (
 import Output (PrettyPrinter, prettyPrint)
 import Indexed
 
+import qualified Data.Vector as V
+import Data.Matrix (Matrix, matrix, prettyMatrix, getRow, getDiag, getCol)
+import qualified Data.Matrix as MA
 import qualified Data.Text as T
 import Numeric.Natural
 import Protolude hiding (get, set)
+
+--
+-- Naive algorithm & naive data structures
+--
 
 newtype Board1 = B1 [[Bool]]
     deriving (Generic, NFData)
@@ -108,3 +119,50 @@ getMatrixValue ::
 getMatrixValue matrix point = do
     row <- matrix `get` snd point
     row `get` fst point
+
+
+--
+-- Naive algorithm, smarter data structure
+--
+newtype Board2 = B2 (Matrix Bool)
+    deriving (Generic, NFData)
+
+emptyBoard2 ::
+    Natural
+    -> Board2
+emptyBoard2 n = let
+    n' = fromIntegral n
+    in B2 $ matrix n' n'  (const False)
+
+instance PrettyPrinter Board2 where
+    prettyPrint (B2 xs) = ((`T.snoc` '\n') . T.pack . prettyMatrix) $ transform <$> xs
+        where
+            transform True = 'Q'
+            transform False = '.'
+
+isValidBoard2 ::
+    Board2
+    -> Bool
+isValidBoard2 (B2 board) = let
+    allRowsValid = checkRows $ (`getRow` board) <$> [1..size]
+    allColsValid = checkRows $ (`getCol` board) <$> [1..size]
+    validDiagonals =
+        allDiagonalsValid board && allDiagonalsValid (MA.transpose board)
+    in allRowsValid && allColsValid && validDiagonals
+    where
+        size = MA.nrows board
+        checkRows = all (<=1) . fmap (V.length . V.filter identity)
+        allDiagonalsValid :: Matrix Bool -> Bool
+        allDiagonalsValid rows = let
+            startingIndices = [1..size]
+            xDiagonals = getDiag . (\n -> MA.submatrix 1 ((size + 1) - n) n size rows  ) <$> startingIndices
+            yDiagonals = getDiag . (\n -> MA.submatrix n size 1 ((size + 1) -n) rows) <$> startingIndices
+            in checkRows xDiagonals && checkRows yDiagonals
+
+nQueens2 ::
+    Natural
+    -> [Board2]
+nQueens2 n =
+    filter isValidBoard2 boards
+    where
+        boards = fmap (B2 . MA.fromLists) . permutations $ possibleRows n (replicateN n False)
