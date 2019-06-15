@@ -14,14 +14,23 @@ module NQueens (
     -- Naive matrix stuff
     extractDiagonal,
     getMatrixValue,
-    rotate90Counter
+    rotate90Counter,
+    toBoard1,
+
+    -- Missing Data.Matrix stuff
+    rotate90L,
+    rotate90R,
+    reverseRow,
+    reverseCol,
+    allDiagonals
 ) where
 
+import qualified Prelude
 import Output (PrettyPrinter, prettyPrint)
 import Indexed
 
 import qualified Data.Vector as V
-import Data.Matrix (Matrix, matrix, prettyMatrix, getRow, getDiag, getCol)
+import Data.Matrix (Matrix, matrix, prettyMatrix, getRow, getDiag, getCol, setElem, (!), getElem, nrows, ncols)
 import qualified Data.Matrix as MA
 import qualified Data.Text as T
 import Numeric.Natural
@@ -32,7 +41,7 @@ import Protolude hiding (get, set)
 --
 
 newtype Board1 = B1 [[Bool]]
-    deriving (Generic, NFData)
+    deriving (Generic, NFData, Eq)
 
 makeBoard1 ::
     Natural
@@ -127,6 +136,11 @@ getMatrixValue matrix point = do
 newtype Board2 = B2 (Matrix Bool)
     deriving (Generic, NFData)
 
+toBoard1 ::
+    Board2
+    -> Board1
+toBoard1 (B2 matrix) = B1 $ MA.toLists matrix
+
 emptyBoard2 ::
     Natural
     -> Board2
@@ -146,18 +160,28 @@ isValidBoard2 ::
 isValidBoard2 (B2 board) = let
     allRowsValid = checkRows $ (`getRow` board) <$> [1..size]
     allColsValid = checkRows $ (`getCol` board) <$> [1..size]
-    validDiagonals =
-        allDiagonalsValid board && allDiagonalsValid (MA.transpose board)
+    validDiagonals = let
+        r1 = rotate90L board
+        in allDiagonalsValid board && allDiagonalsValid r1
     in allRowsValid && allColsValid && validDiagonals
     where
         size = MA.nrows board
         checkRows = all (<=1) . fmap (V.length . V.filter identity)
         allDiagonalsValid :: Matrix Bool -> Bool
-        allDiagonalsValid rows = let
-            startingIndices = [1..size]
-            xDiagonals = getDiag . (\n -> MA.submatrix 1 ((size + 1) - n) n size rows  ) <$> startingIndices
-            yDiagonals = getDiag . (\n -> MA.submatrix n size 1 ((size + 1) -n) rows) <$> startingIndices
-            in checkRows xDiagonals && checkRows yDiagonals
+        allDiagonalsValid = checkRows . allDiagonals
+
+
+-- | Extract all of the diagonals through a square matrix
+allDiagonals ::
+    Matrix a
+    -> [V.Vector a]
+allDiagonals matrix = xDiagonals<>yDiagonals
+    where
+        size = MA.nrows matrix
+        indices = [1..size]
+        xDiagonals = getDiag . (\n -> MA.submatrix 1 (size - (n-1)) n size matrix) <$> indices
+        yDiagonals = getDiag . (\n -> MA.submatrix n size 1 (size - (n-1)) matrix) <$> indices
+
 
 nQueens2 ::
     Natural
@@ -166,3 +190,50 @@ nQueens2 n =
     filter isValidBoard2 boards
     where
         boards = fmap (B2 . MA.fromLists) . permutations $ possibleRows n (replicateN n False)
+
+-- | Rotate a matrix 90 degrees
+rotate90L ::
+    Matrix a
+    -> Matrix a
+rotate90L matrix =
+    foldr reverseCol (MA.transpose matrix) (fromIntegral <$> [1..ncols matrix])
+
+rotate90R ::
+    Matrix a
+    -> Matrix a
+rotate90R matrix =
+    foldr reverseRow (MA.transpose matrix) (fromIntegral <$> [1..ncols matrix])
+
+-- | Reverse the elements in a given row w/in the matrix
+reverseRow ::
+    Natural
+    -> Matrix a
+    -> Matrix a
+reverseRow i matrix
+    | nrows matrix < iInt = Prelude.error "Out of bounds"
+    | otherwise = foldr swap matrix [1..cols `div` 2]
+    where
+        iInt = fromIntegral i
+        cols = ncols matrix
+        swap j mx = let
+            x = mx ! (iInt, j)
+            mx' = setElem (mx ! (iInt, cols - (j-1))) (iInt, j) mx
+            in setElem x (iInt, cols - (j-1)) mx'
+
+-- Reverse the elements in a given column within the matrix
+reverseCol ::
+    Natural
+    -> Matrix a
+    -> Matrix a
+reverseCol j matrix
+    | ncols matrix < jInt = Prelude.error "Out of bounds"
+    | otherwise = foldr swap matrix [1..rows `div` 2]
+    where
+        jInt = fromIntegral j
+        rows = nrows matrix
+        swap i mx = let
+            x = mx ! (i, jInt)
+            mx' = setElem (mx ! (rows - (i-1), jInt)) (i, jInt) mx
+            in setElem x (rows - (i-1), jInt) mx'
+
+

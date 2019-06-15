@@ -6,6 +6,7 @@ import NQueens
 import Indexed
 import Output
 
+import qualified Data.Vector as V
 import qualified Data.Matrix as MA
 import Protolude hiding (get, set)
 import Test.QuickCheck.Instances.Natural
@@ -172,12 +173,55 @@ helperTests = testGroup "helpers" [
             in if x < lengthN ls
                then not $ null v
                else null v
+    ,
+    testCase "rotate90R: rotates a matrix 90 degrees right" $ let
+        m1 = rotate90R $ MA.fromLists smallMatrix
+        m2 = rotate90R $ MA.fromLists medMatrix
+        in do
+            m1 @?= MA.fromLists [[8,0,1],
+                                 [4,2,2],
+                                 [3,5,3]]
+            m2 @?= MA.fromLists [[0,1,0,0,0,0],
+                                 [0,0,0,0,1,0],
+                                 [1,0,0,0,0,0],
+                                 [0,0,0,0,0,1],
+                                 [0,0,0,1,0,0],
+                                 [0,0,1,0,0,0]]
+    ,
+    testCase "rotate90L: rotates a matrix 90 degrees left" $ let
+        m1 = rotate90L $ MA.fromLists smallMatrix
+        m2 = rotate90L $ MA.fromLists medMatrix
+        in do
+            m1 @?= MA.fromLists [[3,5,3],
+                                 [2,2,4],
+                                 [1,0,8]]
+            m2 @?= MA.fromLists [[0,0,0,1,0,0],
+                                 [0,0,1,0,0,0],
+                                 [1,0,0,0,0,0],
+                                 [0,0,0,0,0,1],
+                                 [0,1,0,0,0,0],
+                                 [0,0,0,0,1,0]]
+    ,
+    testCase "allDiagonals: extracts proper diagonals" $ let
+        m1 = allDiagonals $ MA.fromLists smallMatrix
+        m2 = allDiagonals $ MA.fromLists medMatrix
+        in do
+            m1 @?= V.fromList <$> [[1,2,3],[2,5],[3],
+                                 [1,2,3], [0,4],[8]]
+            m2 @?= V.fromList <$> [[0,1,0,0,0,0],[0,0,0,0,0], [0,0,1,1], [1,0,0], [0,0], [0],
+                                 [0,1,0,0,0,0],[0,0,0,0,0], [0,0,0,0], [0,0,1], [1,0], [0]]
     ]
     where
         lengthN = fromIntegral . length
         smallMatrix = [[1,2,3],
                        [0,2,5],
                        [8,4,3]]
+        medMatrix = [[0,0,0,1,0,0],
+                     [0,1,0,0,0,0],
+                     [0,0,0,0,1,0],
+                     [0,0,0,0,0,1],
+                     [1,0,0,0,0,0],
+                     [0,0,1,0,0,0]]
 
 
 newtype IntMatrix = IM [[Int]]
