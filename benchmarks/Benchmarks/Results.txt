@@ -1,0 +1,41 @@
+benchmarking NQueens/naive 5x5
+time                 610.1 μs   (607.4 μs .. 614.6 μs)
+                     0.999 R²   (0.999 R² .. 1.000 R²)
+mean                 615.6 μs   (611.3 μs .. 620.2 μs)
+std dev              15.27 μs   (10.39 μs .. 18.52 μs)
+variance introduced by outliers: 15% (moderately inflated)
+
+benchmarking NQueens/naive 8x8
+time                 317.2 ms   (300.0 ms .. 340.7 ms)
+                     0.998 R²   (0.997 R² .. 1.000 R²)
+mean                 317.3 ms   (311.1 ms .. 324.6 ms)
+std dev              8.083 ms   (4.405 ms .. 10.47 ms)
+variance introduced by outliers: 16% (moderately inflated)
+
+benchmarking NQueens/naive 10x10
+time                 36.07 s    (35.54 s .. 36.71 s)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 36.39 s    (36.22 s .. 36.50 s)
+std dev              167.5 ms   (67.93 ms .. 232.6 ms)
+variance introduced by outliers: 19% (moderately inflated)
+
+benchmarking NQueens/matrix 5x5
+time                 413.4 μs   (406.8 μs .. 422.2 μs)
+                     0.997 R²   (0.993 R² .. 1.000 R²)
+mean                 413.8 μs   (410.8 μs .. 419.7 μs)
+std dev              14.89 μs   (8.820 μs .. 21.98 μs)
+variance introduced by outliers: 29% (moderately inflated)
+
+benchmarking NQueens/matrix 8x8
+time                 240.0 ms   (237.8 ms .. 243.6 ms)
+                     1.000 R²   (1.000 R² .. 1.000 R²)
+mean                 239.7 ms   (238.9 ms .. 240.2 ms)
+std dev              784.5 μs   (541.7 μs .. 1.007 ms)
+variance introduced by outliers: 16% (moderately inflated)
+
+benchmarking NQueens/matrix 10x10
+time                 29.17 s    (25.48 s .. 33.66 s)
+                     0.997 R²   (0.991 R² .. 1.000 R²)
+mean                 29.96 s    (29.38 s .. 31.00 s)
+std dev              1.028 s    (14.16 ms .. 1.249 s)
+variance introduced by outliers: 19% (moderately inflated)
