@@ -5,6 +5,8 @@ module NQueens (
     Board2(..),
     nQueens2,
     isValidBoard2,
+    SparseMatrix,
+    emptyBoard3,
 
     -- board stuff
     makeBoard1,
@@ -22,7 +24,12 @@ module NQueens (
     rotate90R,
     reverseRow,
     reverseCol,
-    allDiagonals
+    allDiagonals,
+    perms,
+    sparsePerms,
+    allSparseCols,
+    allSparseRows,
+    allSparseDiags
 ) where
 
 import qualified Prelude
@@ -30,8 +37,10 @@ import Output (PrettyPrinter, prettyPrint)
 import Indexed
 
 import qualified Data.Vector as V
+import qualified Data.Set as S
 import Data.Matrix (Matrix, matrix, prettyMatrix, getRow, getDiag, getCol, setElem, (!), getElem, nrows, ncols)
 import qualified Data.Matrix as MA
+import qualified Data.Map as M
 import qualified Data.Text as T
 import Numeric.Natural
 import Protolude hiding (get, set)
@@ -131,8 +140,13 @@ getMatrixValue matrix point = do
 
 
 --
+-- Part 2:
+--
+--
 -- Naive algorithm, smarter data structure
 --
+
+
 newtype Board2 = B2 (Matrix Bool)
     deriving (Generic, NFData)
 
@@ -236,4 +250,102 @@ reverseCol j matrix
             mx' = setElem (mx ! (rows - (i-1), jInt)) (i, jInt) mx
             in setElem x (rows - (i-1), jInt) mx'
 
+--
+-- Part 3:
+--
+--
+-- Naive algorithm, but even more intelligent data structure
+--
 
+newtype X = X {unX :: Natural}
+    deriving (Eq, Ord, Show)
+
+newtype Y = Y {unY :: Natural}
+    deriving (Eq, Ord, Show)
+
+data SparseMatrix a = SparseMatrix {
+    numRows :: Natural
+    ,numCols :: Natural
+    ,values :: Set (X, Y, a)
+    }
+    deriving Show
+
+instance PrettyPrinter (SparseMatrix Bool) where
+    prettyPrint SparseMatrix {values, numRows, numCols} =
+        foldl' f "" [ (X x, Y y, True)| x <- [0..numCols -1],
+                                        y <- [0..numRows -1]]
+        where
+            f output pt@(X x, Y y, _) = let
+                c = if pt `S.member` values then 'Q' else '.'
+                in if numRows `rem` x  == 0
+                   then output `T.snoc` c `T.snoc` '\n'
+                   else output `T.snoc` c
+
+emptyBoard3 ::
+    Natural
+    -> SparseMatrix Bool
+emptyBoard3 n = SparseMatrix {
+     numRows = n
+    ,numCols = n
+    ,values = S.empty
+    }
+
+-- use lookup tables to detmerine which whether each row, column, and diagonal
+-- is safe
+allSparseRows ::
+    Natural
+    -> M.Map Natural [(X,Y,Bool)]
+allSparseRows n =
+    M.fromList [(y, (,Y y, True) . X <$>[0..n-1]) | y <- [0..n-1]]
+
+allSparseCols ::
+    Natural
+    -> M.Map Natural [(X,Y,Bool)]
+allSparseCols n =
+    M.fromList [(x, (X x, , True) . Y <$>[0..n-1]) | x <- [0..n-1]]
+
+allSparseDiags ::
+    Natural
+    -> [[(X,Y,Bool)]]
+allSparseDiags n = let
+    upperDescDiags = (\x -> [(X x, Y y, True)| y <- [x..n-1]]) <$> [0..n-1]
+    lowerDescDiags = (\y -> [(X x, Y y, True)| x <- [y..n-1]]) <$> [0..n-1]
+    upperAscDiags = (\x -> [(X x, Y y, True)| y <- [x..0]]) <$> [n-1..0]
+    lowerAscDiags = (\y -> [(X x, Y y, True)| x <- [y..0]]) <$> [n-1..0]
+    in upperAscDiags<>lowerAscDiags<>upperDescDiags<>lowerDescDiags
+
+sparseRowPerms ::
+    Natural
+    -> Natural
+    -> [(X, Y, Bool)]
+sparseRowPerms col row =
+    [(X x, Y row, True) | x <- [0..col -1]]
+
+sparsePerms ::
+    Natural
+    -> [SparseMatrix Bool]
+sparsePerms n =
+    toSparseMatrix <$> perms rowPossibilities
+    where
+        rowPossibilities :: [[(X,Y,Bool)]]
+        rowPossibilities = sparseRowPerms n <$> [0..n-1]
+        toSparseMatrix :: [(X,Y,Bool)] -> SparseMatrix Bool
+        toSparseMatrix px = SparseMatrix {
+            numRows = n,
+            numCols = n,
+            values = S.fromList px
+            }
+
+-- given [[a]], detemrine all possible [a] made up of one element from
+-- each row
+-- so, given [[1], [2]], the result is [1,2]
+-- given [[1,2],[3,4]], the result is [[1,3], [1,4], [2,3], [2,4]]
+perms ::
+    [[a]]
+    -> [[a]]
+-- The next two are the base case
+perms [rest] = (:[]) <$> rest
+perms ([x]:rest) = (x:) <$> perms rest
+-- This is the inductive step
+perms ((x:xs):rest) =
+    ((x:) <$> perms rest) <> perms (xs:rest)

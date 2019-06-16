@@ -25,6 +25,7 @@ dependencies:
 - text
 - matrix
 - vector
+- containers
 
 default-extensions:
   MultiParamTypeClasses
