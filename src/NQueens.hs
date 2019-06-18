@@ -290,29 +290,49 @@ emptyBoard3 n = SparseMatrix {
     ,values = S.empty
     }
 
+
+nQueens3 ::
+    Natural
+    -> [SparseMatrix Bool]
+nQueens3 n =
+    filter isValidBoard3  $ sparsePerms n
+
+isValidBoard3 ::
+    SparseMatrix Bool
+    -> Bool
+isValidBoard3 SparseMatrix {values, numRows} = let
+    rowsValid = all ((<= 1) . length) $ map (filter (`S.member` values)) (allSparseRows numRows)
+    colsValid = all ((<= 1) . length) $ map (filter (`S.member` values)) (allSparseCols numRows)
+    diagsValid = all ((<= 1) . length) $ map (filter (`S.member` values)) (allSparseDiags numRows)
+    in rowsValid && colsValid && diagsValid
+
+
 -- use lookup tables to detmerine which whether each row, column, and diagonal
 -- is safe
 allSparseRows ::
     Natural
-    -> M.Map Natural [(X,Y,Bool)]
+    -> [[(X,Y,Bool)]]
 allSparseRows n =
-    M.fromList [(y, (,Y y, True) . X <$>[0..n-1]) | y <- [0..n-1]]
+    [(,Y y, True) . X <$>[0..n-1] | y <- [0..n-1]]
 
 allSparseCols ::
     Natural
-    -> M.Map Natural [(X,Y,Bool)]
+    -> [[(X,Y,Bool)]]
 allSparseCols n =
-    M.fromList [(x, (X x, , True) . Y <$>[0..n-1]) | x <- [0..n-1]]
+    [(X x, , True) . Y <$>[0..n-1] | x <- [0..n-1]]
 
 allSparseDiags ::
     Natural
     -> [[(X,Y,Bool)]]
 allSparseDiags n = let
-    upperDescDiags = (\x -> [(X x, Y y, True)| y <- [x..n-1]]) <$> [0..n-1]
-    lowerDescDiags = (\y -> [(X x, Y y, True)| x <- [y..n-1]]) <$> [0..n-1]
-    upperAscDiags = (\x -> [(X x, Y y, True)| y <- [x..0]]) <$> [n-1..0]
-    lowerAscDiags = (\y -> [(X x, Y y, True)| x <- [y..0]]) <$> [n-1..0]
-    in upperAscDiags<>lowerAscDiags<>upperDescDiags<>lowerDescDiags
+    rDescDiags =  map (map toPoint) $ map (\x -> [x..size] `zip` [0..size-x]) [0..size]
+    lDescDiags = map (map toPoint) $ map (\y -> [0..size-y] `zip` [y..size]) [0..size]
+    rAscDiags = map (map toPoint) $ map (\x -> [x..size] `zip` [size,size-1..0]) [0..size]
+    lAscDiags = map (map toPoint) $ map (\y -> [0..size-y] `zip` (reverse [0..size-y])) [0..size]
+    in rAscDiags<>lAscDiags<>rDescDiags<>lDescDiags
+    where
+        size = n-1
+        toPoint (x,y) = (X x, Y y, True)
 
 sparseRowPerms ::
     Natural
