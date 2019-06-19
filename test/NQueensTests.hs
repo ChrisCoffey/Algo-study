@@ -8,6 +8,7 @@ import Output
 
 import qualified Data.Vector as V
 import qualified Data.Matrix as MA
+import qualified Data.Set as S
 import Protolude hiding (get, set)
 import Test.QuickCheck.Instances.Natural
 import Test.Tasty
@@ -18,8 +19,10 @@ tests :: TestTree
 tests = testGroup "N Queens" [
     v1Tests,
     v2Tests,
+    v3Tests,
     outputTests,
-    helperTests
+    helperTests,
+    sparseMatrixTests
     ]
 
 v1Tests :: TestTree
@@ -135,6 +138,56 @@ v2Tests = testGroup "v2 N-Queens" [
         isValidBoard2 f @?= False
     ]
 
+v3Tests :: TestTree
+v3Tests = testGroup "V3: Sparse Matrix with naive algo" [
+    testCase "isValidBoard3: identifies the trivial board" $
+        isValidBoard3 (SparseMatrix 1 1 (S.fromList [(X 0, Y 0, True)])) @?= True
+    ,
+    testCase "isValidBoard3: identifies a 4x4 board" $
+        isValidBoard3 fourByFour @?= True
+    ,
+    testCase "isValidBoard3: rejects invalid boards" $ do
+        let
+            a = SparseMatrix 4 4 $ S.fromList [
+                (X 1, Y 0, True)
+                ,(X 1, Y 1, True)
+                ,(X 0, Y 2, True)
+                ,(X 2, Y 3, True)]
+            b = SparseMatrix 4 4 $ S.fromList [
+                (X 0, Y 0, True)
+                ,(X 1, Y 1, True)
+                ,(X 3, Y 2, True)
+                ,(X 2, Y 3, True)]
+            c = SparseMatrix 4 4 $ S.fromList [
+                (X 2, Y 0, True)
+                ,(X 3, Y 1, True)
+                ,(X 1, Y 2, True)
+                ,(X 0, Y 3, True)]
+            d = SparseMatrix 4 4 $ S.fromList [
+                (X 1, Y 0, True)
+                ,(X 3, Y 0, True)
+                ,(X 0, Y 2, True)
+                ,(X 2, Y 3, True)]
+            e = SparseMatrix 4 4 $ S.fromList [
+                (X 2, Y 0, True)
+                ,(X 3, Y 1, True)
+                ,(X 0, Y 2, True)
+                ,(X 1, Y 3, True)]
+        isValidBoard3 a @?= False
+        isValidBoard3 b @?= False
+        isValidBoard3 c @?= False
+        isValidBoard3 d @?= False
+        isValidBoard3 e @?= False
+    ]
+    where
+        fourByFour = SparseMatrix 4 4 $ S.fromList [
+                (X 1, Y 0, True)
+                ,(X 3, Y 1, True)
+                ,(X 0, Y 2, True)
+                ,(X 2, Y 3, True)
+            ]
+
+
 outputTests :: TestTree
 outputTests = testGroup "output" [
     testCase "Empty list prints nothing" $ do
@@ -223,6 +276,31 @@ helperTests = testGroup "helpers" [
                      [1,0,0,0,0,0],
                      [0,0,1,0,0,0]]
 
+
+sparseMatrixTests :: TestTree
+sparseMatrixTests = testGroup "SparseMatrix" [
+    testCase "sparseRowPerms generates all possible single-queen rows" $ do
+        sparseRowPerms 2 0 @?= [(X 0, Y 0, True), (X 1, Y 0, True)]
+        sparseRowPerms 4 0 @?= [(X 0, Y 0, True), (X 1, Y 0, True),(X 2, Y 0, True), (X 3, Y 0, True)]
+    ,
+    testCase "sparsePerms generates all permutaions of an nxn grid with one Q per row" $ do
+        sparsePerms 2 @?= twoByTwo
+    ]
+    where
+        twoByTwo = [
+              SparseMatrix {numCols=2, numRows=2, values=S.fromList [
+                (X 0, Y 0, True), (X 0, Y 1, True)
+                ]}
+            , SparseMatrix {numCols=2, numRows=2, values=S.fromList [
+                (X 0, Y 0, True), (X 1, Y 1, True)
+                ]}
+            , SparseMatrix {numCols=2, numRows=2, values=S.fromList [
+                (X 1, Y 0, True), (X 0, Y 1, True)
+                ]}
+            , SparseMatrix {numCols=2, numRows=2, values=S.fromList [
+                (X 1, Y 0, True), (X 1, Y 1, True)
+                ]}
+            ]
 
 newtype IntMatrix = IM [[Int]]
     deriving Show

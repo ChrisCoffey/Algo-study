@@ -1,7 +1,9 @@
 module Main where
 
 import Protolude
+import NQueens
 
 
 main :: IO ()
-main = print "nothing to see here. Move along"
+main =
+    putStr . (show :: Int -> Text) . length $ nQueens3 7

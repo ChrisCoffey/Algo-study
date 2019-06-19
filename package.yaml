@@ -26,6 +26,8 @@ dependencies:
 - matrix
 - vector
 - containers
+- unordered-containers
+- hashable
 
 default-extensions:
   MultiParamTypeClasses

@@ -5,8 +5,13 @@ module NQueens (
     Board2(..),
     nQueens2,
     isValidBoard2,
-    SparseMatrix,
+    SparseMatrix(..),
+    SparseRows(..),
+    SparseCols(..),
+    SparseDiags(..),
     emptyBoard3,
+    nQueens3,
+    isValidBoard3,
 
     -- board stuff
     makeBoard1,
@@ -20,6 +25,8 @@ module NQueens (
     toBoard1,
 
     -- Missing Data.Matrix stuff
+    X(..),
+    Y(..),
     rotate90L,
     rotate90R,
     reverseRow,
@@ -27,6 +34,7 @@ module NQueens (
     allDiagonals,
     perms,
     sparsePerms,
+    sparseRowPerms,
     allSparseCols,
     allSparseRows,
     allSparseDiags
@@ -37,7 +45,9 @@ import Output (PrettyPrinter, prettyPrint)
 import Indexed
 
 import qualified Data.Vector as V
-import qualified Data.Set as S
+import qualified Data.HashSet as S
+import Data.Hashable
+import GHC.Generics
 import Data.Matrix (Matrix, matrix, prettyMatrix, getRow, getDiag, getCol, setElem, (!), getElem, nrows, ncols)
 import qualified Data.Matrix as MA
 import qualified Data.Map as M
@@ -258,17 +268,17 @@ reverseCol j matrix
 --
 
 newtype X = X {unX :: Natural}
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Hashable, Generic)
 
 newtype Y = Y {unY :: Natural}
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Hashable, Generic)
 
 data SparseMatrix a = SparseMatrix {
     numRows :: Natural
     ,numCols :: Natural
-    ,values :: Set (X, Y, a)
+    ,values :: S.HashSet (X, Y, a)
     }
-    deriving Show
+    deriving (Show, Eq)
 
 instance PrettyPrinter (SparseMatrix Bool) where
     prettyPrint SparseMatrix {values, numRows, numCols} =
@@ -295,41 +305,61 @@ nQueens3 ::
     Natural
     -> [SparseMatrix Bool]
 nQueens3 n =
-    filter isValidBoard3  $ sparsePerms n
+    filter (isValidBoard3 rows cols diags) $ sparsePerms n
+    where
+        rows = allSparseRows n
+        cols = allSparseCols n
+        diags = allSparseDiags n
 
 isValidBoard3 ::
-    SparseMatrix Bool
+    SparseRows
+    -> SparseCols
+    -> SparseDiags
+    -> SparseMatrix Bool
     -> Bool
-isValidBoard3 SparseMatrix {values, numRows} = let
-    rowsValid = all ((<= 1) . length) $ map (filter (`S.member` values)) (allSparseRows numRows)
-    colsValid = all ((<= 1) . length) $ map (filter (`S.member` values)) (allSparseCols numRows)
-    diagsValid = all ((<= 1) . length) $ map (filter (`S.member` values)) (allSparseDiags numRows)
+isValidBoard3 (SR rows) (SC cols) (SD diags) (SparseMatrix {values}) = let
+    rowsValid = check rows
+    colsValid = check cols
+    diagsValid = check diags
     in rowsValid && colsValid && diagsValid
+    where
+        check = all ((<= 1) . length) . map (filter (`S.member` values))
 
-
+newtype SparseRows = SR {unSR::[[(X,Y,Bool)]]}
+    deriving Show
+newtype SparseCols= SC {unSC:: [[(X,Y,Bool)]]}
+    deriving Show
+newtype SparseDiags= SD {unSD:: [[(X,Y,Bool)]]}
+    deriving Show
 -- use lookup tables to detmerine which whether each row, column, and diagonal
 -- is safe
 allSparseRows ::
     Natural
-    -> [[(X,Y,Bool)]]
+    -> SparseRows
+allSparseRows 1 =
+    SR [[(X 0, Y 0, True)]]
 allSparseRows n =
-    [(,Y y, True) . X <$>[0..n-1] | y <- [0..n-1]]
+    SR $ sparseRowPerms n <$> [0..n-1]
 
 allSparseCols ::
     Natural
-    -> [[(X,Y,Bool)]]
+    -> SparseCols
+allSparseCols 1 =
+    SC [[(X 0, Y 0, True)]]
 allSparseCols n =
-    [(X x, , True) . Y <$>[0..n-1] | x <- [0..n-1]]
+    SC $ (\x -> (X x,, True) . Y <$> [0..n-1]) <$> [0..n-1]
 
 allSparseDiags ::
     Natural
-    -> [[(X,Y,Bool)]]
+    -> SparseDiags
+allSparseDiags 1 =
+    SD [[(X 0, Y 0, True)]]
 allSparseDiags n = let
     rDescDiags =  map (map toPoint) $ map (\x -> [x..size] `zip` [0..size-x]) [0..size]
     lDescDiags = map (map toPoint) $ map (\y -> [0..size-y] `zip` [y..size]) [0..size]
     rAscDiags = map (map toPoint) $ map (\x -> [x..size] `zip` [size,size-1..0]) [0..size]
     lAscDiags = map (map toPoint) $ map (\y -> [0..size-y] `zip` (reverse [0..size-y])) [0..size]
-    in rAscDiags<>lAscDiags<>rDescDiags<>lDescDiags
+    in SD $ rAscDiags<>lAscDiags<>rDescDiags<>lDescDiags
     where
         size = n-1
         toPoint (x,y) = (X x, Y y, True)
