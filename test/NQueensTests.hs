@@ -8,7 +8,7 @@ import Output
 
 import qualified Data.Vector as V
 import qualified Data.Matrix as MA
-import qualified Data.Set as S
+import qualified Data.HashSet as S
 import Protolude hiding (get, set)
 import Test.QuickCheck.Instances.Natural
 import Test.Tasty
@@ -140,51 +140,58 @@ v2Tests = testGroup "v2 N-Queens" [
 
 v3Tests :: TestTree
 v3Tests = testGroup "V3: Sparse Matrix with naive algo" [
-    testCase "isValidBoard3: identifies the trivial board" $
-        isValidBoard3 (SparseMatrix 1 1 (S.fromList [(X 0, Y 0, True)])) @?= True
+    testCase "isValidBoard3: identifies the trivial board" $ do
+        let trivialBoard = [(X 0, Y 0)]
+        isValidBoard3 (SR [trivialBoard])
+                      (SC [trivialBoard])
+                      (SD [trivialBoard])
+                      (SparseMatrix 1 1 (S.fromList trivialBoard)) @?= True
     ,
     testCase "isValidBoard3: identifies a 4x4 board" $
-        isValidBoard3 fourByFour @?= True
+        isValidBoard3 rx cx dx fourByFour @?= True
     ,
     testCase "isValidBoard3: rejects invalid boards" $ do
         let
             a = SparseMatrix 4 4 $ S.fromList [
-                (X 1, Y 0, True)
-                ,(X 1, Y 1, True)
-                ,(X 0, Y 2, True)
-                ,(X 2, Y 3, True)]
+                (X 1, Y 0)
+                ,(X 1, Y 1)
+                ,(X 0, Y 2)
+                ,(X 2, Y 3)]
             b = SparseMatrix 4 4 $ S.fromList [
-                (X 0, Y 0, True)
-                ,(X 1, Y 1, True)
-                ,(X 3, Y 2, True)
-                ,(X 2, Y 3, True)]
+                (X 0, Y 0)
+                ,(X 1, Y 1)
+                ,(X 3, Y 2)
+                ,(X 2, Y 3)]
             c = SparseMatrix 4 4 $ S.fromList [
-                (X 2, Y 0, True)
-                ,(X 3, Y 1, True)
-                ,(X 1, Y 2, True)
-                ,(X 0, Y 3, True)]
+                (X 2, Y 0)
+                ,(X 3, Y 1)
+                ,(X 1, Y 2)
+                ,(X 0, Y 3)]
             d = SparseMatrix 4 4 $ S.fromList [
-                (X 1, Y 0, True)
-                ,(X 3, Y 0, True)
-                ,(X 0, Y 2, True)
-                ,(X 2, Y 3, True)]
+                (X 1, Y 0)
+                ,(X 3, Y 0)
+                ,(X 0, Y 2)
+                ,(X 2, Y 3)]
             e = SparseMatrix 4 4 $ S.fromList [
-                (X 2, Y 0, True)
-                ,(X 3, Y 1, True)
-                ,(X 0, Y 2, True)
-                ,(X 1, Y 3, True)]
-        isValidBoard3 a @?= False
-        isValidBoard3 b @?= False
-        isValidBoard3 c @?= False
-        isValidBoard3 d @?= False
-        isValidBoard3 e @?= False
+                (X 2, Y 0)
+                ,(X 3, Y 1)
+                ,(X 0, Y 2)
+                ,(X 1, Y 3)]
+        isValidBoard3 rx cx dx a @?= False
+        isValidBoard3 rx cx dx b @?= False
+        isValidBoard3 rx cx dx c @?= False
+        isValidBoard3 rx cx dx d @?= False
+        isValidBoard3 rx cx dx e @?= False
     ]
     where
+        rx = allSparseRows 4
+        cx = allSparseCols 4
+        dx = allSparseDiags 4
         fourByFour = SparseMatrix 4 4 $ S.fromList [
-                (X 1, Y 0, True)
-                ,(X 3, Y 1, True)
-                ,(X 0, Y 2, True)
-                ,(X 2, Y 3, True)
+                (X 1, Y 0)
+                ,(X 3, Y 1)
+                ,(X 0, Y 2)
+                ,(X 2, Y 3)
             ]
 
 
@@ -280,8 +287,8 @@ helperTests = testGroup "helpers" [
 sparseMatrixTests :: TestTree
 sparseMatrixTests = testGroup "SparseMatrix" [
     testCase "sparseRowPerms generates all possible single-queen rows" $ do
-        sparseRowPerms 2 0 @?= [(X 0, Y 0, True), (X 1, Y 0, True)]
-        sparseRowPerms 4 0 @?= [(X 0, Y 0, True), (X 1, Y 0, True),(X 2, Y 0, True), (X 3, Y 0, True)]
+        sparseRowPerms 2 0 @?= [(X 0, Y 0), (X 1, Y 0)]
+        sparseRowPerms 4 0 @?= [(X 0, Y 0), (X 1, Y 0),(X 2, Y 0), (X 3, Y 0)]
     ,
     testCase "sparsePerms generates all permutaions of an nxn grid with one Q per row" $ do
         sparsePerms 2 @?= twoByTwo
@@ -289,16 +296,16 @@ sparseMatrixTests = testGroup "SparseMatrix" [
     where
         twoByTwo = [
               SparseMatrix {numCols=2, numRows=2, values=S.fromList [
-                (X 0, Y 0, True), (X 0, Y 1, True)
+                (X 0, Y 0), (X 0, Y 1)
                 ]}
             , SparseMatrix {numCols=2, numRows=2, values=S.fromList [
-                (X 0, Y 0, True), (X 1, Y 1, True)
+                (X 0, Y 0), (X 1, Y 1)
                 ]}
             , SparseMatrix {numCols=2, numRows=2, values=S.fromList [
-                (X 1, Y 0, True), (X 0, Y 1, True)
+                (X 1, Y 0), (X 0, Y 1)
                 ]}
             , SparseMatrix {numCols=2, numRows=2, values=S.fromList [
-                (X 1, Y 0, True), (X 1, Y 1, True)
+                (X 1, Y 0), (X 1, Y 1)
                 ]}
             ]
 

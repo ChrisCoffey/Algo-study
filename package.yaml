@@ -38,6 +38,8 @@ default-extensions:
   TupleSections
   DeriveGeneric
   DeriveAnyClass
+  GeneralizedNewtypeDeriving
+  DerivingStrategies
   FunctionalDependencies
   TypeApplications
   UndecidableInstances

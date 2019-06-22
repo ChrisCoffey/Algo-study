@@ -12,6 +12,8 @@ module NQueens (
     emptyBoard3,
     nQueens3,
     isValidBoard3,
+    nQueens4,
+    computeValid4,
 
     -- board stuff
     makeBoard1,
@@ -54,6 +56,9 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 import Numeric.Natural
 import Protolude hiding (get, set)
+import qualified Protolude as PR
+
+
 
 --
 -- Naive algorithm & naive data structures
@@ -268,24 +273,26 @@ reverseCol j matrix
 --
 
 newtype X = X {unX :: Natural}
-    deriving (Eq, Ord, Show, Hashable, Generic)
+    deriving stock (Generic)
+    deriving newtype (Eq, Ord, Show, Hashable, Num, Enum)
 
 newtype Y = Y {unY :: Natural}
-    deriving (Eq, Ord, Show, Hashable, Generic)
+    deriving stock (Generic)
+    deriving newtype (Eq, Ord, Show, Hashable, Num, Enum)
 
-data SparseMatrix a = SparseMatrix {
+data SparseMatrix = SparseMatrix {
     numRows :: Natural
     ,numCols :: Natural
-    ,values :: S.HashSet (X, Y, a)
+    ,values :: S.HashSet (X, Y)
     }
     deriving (Show, Eq)
 
-instance PrettyPrinter (SparseMatrix Bool) where
+instance PrettyPrinter SparseMatrix where
     prettyPrint SparseMatrix {values, numRows, numCols} =
-        foldl' f "" [ (X x, Y y, True)| x <- [0..numCols -1],
+        foldl' f "" [ (X x, Y y)| x <- [0..numCols -1],
                                         y <- [0..numRows -1]]
         where
-            f output pt@(X x, Y y, _) = let
+            f output pt@(X x, Y y) = let
                 c = if pt `S.member` values then 'Q' else '.'
                 in if numRows `rem` x  == 0
                    then output `T.snoc` c `T.snoc` '\n'
@@ -293,7 +300,7 @@ instance PrettyPrinter (SparseMatrix Bool) where
 
 emptyBoard3 ::
     Natural
-    -> SparseMatrix Bool
+    -> SparseMatrix
 emptyBoard3 n = SparseMatrix {
      numRows = n
     ,numCols = n
@@ -303,7 +310,7 @@ emptyBoard3 n = SparseMatrix {
 
 nQueens3 ::
     Natural
-    -> [SparseMatrix Bool]
+    -> [SparseMatrix]
 nQueens3 n =
     filter (isValidBoard3 rows cols diags) $ sparsePerms n
     where
@@ -315,7 +322,7 @@ isValidBoard3 ::
     SparseRows
     -> SparseCols
     -> SparseDiags
-    -> SparseMatrix Bool
+    -> SparseMatrix
     -> Bool
 isValidBoard3 (SR rows) (SC cols) (SD diags) (SparseMatrix {values}) = let
     rowsValid = check rows
@@ -325,11 +332,11 @@ isValidBoard3 (SR rows) (SC cols) (SD diags) (SparseMatrix {values}) = let
     where
         check = all ((<= 1) . length) . map (filter (`S.member` values))
 
-newtype SparseRows = SR {unSR::[[(X,Y,Bool)]]}
+newtype SparseRows = SR {unSR::[[(X,Y)]]}
     deriving Show
-newtype SparseCols= SC {unSC:: [[(X,Y,Bool)]]}
+newtype SparseCols= SC {unSC:: [[(X,Y)]]}
     deriving Show
-newtype SparseDiags= SD {unSD:: [[(X,Y,Bool)]]}
+newtype SparseDiags= SD {unSD:: [[(X,Y)]]}
     deriving Show
 -- use lookup tables to detmerine which whether each row, column, and diagonal
 -- is safe
@@ -337,7 +344,7 @@ allSparseRows ::
     Natural
     -> SparseRows
 allSparseRows 1 =
-    SR [[(X 0, Y 0, True)]]
+    SR [[(X 0, Y 0)]]
 allSparseRows n =
     SR $ sparseRowPerms n <$> [0..n-1]
 
@@ -345,15 +352,15 @@ allSparseCols ::
     Natural
     -> SparseCols
 allSparseCols 1 =
-    SC [[(X 0, Y 0, True)]]
+    SC [[(X 0, Y 0)]]
 allSparseCols n =
-    SC $ (\x -> (X x,, True) . Y <$> [0..n-1]) <$> [0..n-1]
+    SC $ (\x -> (X x,) . Y <$> [0..n-1]) <$> [0..n-1]
 
 allSparseDiags ::
     Natural
     -> SparseDiags
 allSparseDiags 1 =
-    SD [[(X 0, Y 0, True)]]
+    SD [[(X 0, Y 0)]]
 allSparseDiags n = let
     rDescDiags =  map (map toPoint) $ map (\x -> [x..size] `zip` [0..size-x]) [0..size]
     lDescDiags = map (map toPoint) $ map (\y -> [0..size-y] `zip` [y..size]) [0..size]
@@ -362,24 +369,24 @@ allSparseDiags n = let
     in SD $ rAscDiags<>lAscDiags<>rDescDiags<>lDescDiags
     where
         size = n-1
-        toPoint (x,y) = (X x, Y y, True)
+        toPoint (x,y) = (X x, Y y)
 
 sparseRowPerms ::
     Natural
     -> Natural
-    -> [(X, Y, Bool)]
+    -> [(X, Y)]
 sparseRowPerms col row =
-    [(X x, Y row, True) | x <- [0..col -1]]
+    [(X x, Y row) | x <- [0..col -1]]
 
 sparsePerms ::
     Natural
-    -> [SparseMatrix Bool]
+    -> [SparseMatrix]
 sparsePerms n =
     toSparseMatrix <$> perms rowPossibilities
     where
-        rowPossibilities :: [[(X,Y,Bool)]]
+        rowPossibilities :: [[(X,Y)]]
         rowPossibilities = sparseRowPerms n <$> [0..n-1]
-        toSparseMatrix :: [(X,Y,Bool)] -> SparseMatrix Bool
+        toSparseMatrix :: [(X,Y)] -> SparseMatrix
         toSparseMatrix px = SparseMatrix {
             numRows = n,
             numCols = n,
@@ -399,3 +406,95 @@ perms ([x]:rest) = (x:) <$> perms rest
 -- This is the inductive step
 perms ((x:xs):rest) =
     ((x:) <$> perms rest) <> perms (xs:rest)
+
+-- Version 4:
+--
+-- Sparse matrix with backtracking algorithm
+--
+--
+
+nQueens4 ::
+    Natural
+    -> [SparseMatrix]
+nQueens4 = computeValid4
+
+
+newtype Depth = Depth Natural
+
+computeValid4 ::
+    Natural
+    -> [SparseMatrix]
+computeValid4 n =
+    evalState (step (Depth $ n -1)) allPoints
+    where
+        allPoints = S.fromList [(X x, Y y) | x <- [0..n-1], y <- [0..n-1]]
+
+        step :: Depth -> State (S.HashSet (X,Y)) [SparseMatrix]
+        -- The base case, when there are no more branches to take. At this point,
+        -- if there are any points remaining in the "available point" set, then these are all
+        -- valid and should be added to the board
+        step (Depth 0) = do
+            remainingPoints <- S.toList <$> PR.get
+            let toMatrix x = SparseMatrix {
+                 numRows = n
+                ,numCols = n
+                ,values = S.fromList [x]
+                }
+            pure $ toMatrix <$> remainingPoints
+
+        -- The inductive case. Compute each valid point on the row, then explore down the
+        -- tree of possibilities for that point. Each time the algo explores deeper down the tree,
+        -- it marks off all points invalidated by the chosen point
+        step (Depth d) = do
+            availablePoints <- PR.get
+            let possibleRowPoints = sparseRowPerms n d
+                validRowPoints = filter (`S.member` availablePoints) possibleRowPoints
+            results <- traverse explore validRowPoints
+            pure $ concat results
+            where
+                -- For a valid point:
+                --  1) filter out the points invalidated by this point
+                --  2) update the state to reflect that
+                --  3) recursively compute the next setps based on the invalidated points
+                --  4) reset the state back to what it started at
+                --  5) Add the valid point to the results of the recursive exploration
+                explore :: (X,Y) -> State (S.HashSet (X,Y)) [SparseMatrix]
+                explore point = do
+                    availablePoints <- PR.get
+                    let filteredPoints = invalidatePoints point availablePoints
+                    if null filteredPoints
+                    then pure []
+                    else  do
+                        PR.put filteredPoints
+                        results <- step (Depth $ d-1)
+                        PR.put availablePoints -- This is the reset
+                        let addToMatrix m@(SparseMatrix {values}) = m {values = S.insert point values}
+                        pure $ addToMatrix <$> results
+                    where
+                        invalidatePoints :: (X, Y) -> S.HashSet (X,Y) -> S.HashSet (X,Y)
+                        invalidatePoints (x, y) = S.filter (\(x', y') -> x' /= x && y' /= y && notOnDiagonal (x', y'))
+                            where
+                                size = n-1
+                                oX = X 1
+                                zX = X 0
+                                oY = Y 1
+                                zY = Y 0
+                                notOnDiagonal (x', y') = let
+                                    upLeft = if x == zX || y == zY
+                                            then []
+                                            else [x,x-oX..zX] `zip` [y, y-oY..zY]
+
+                                    upRight = if x == X size || y == zY
+                                            then []
+                                            else [x..X size] `zip` [y, y-oY..zY]
+
+                                    downLeft = if x == zX || y == (Y size)
+                                            then []
+                                            else [x, x-oX..zX] `zip` [y.. Y size]
+
+                                    downRight = if x == (X size) || y == (Y size)
+                                                then []
+                                                else [x..X size] `zip` [y.. Y size]
+
+                                    in (x',y') `notElem` (upLeft <> upRight <> downLeft <> downRight)
+
