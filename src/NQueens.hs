@@ -271,6 +271,8 @@ reverseCol j matrix
 --
 -- Naive algorithm, but even more intelligent data structure
 --
+-- Unfortunately, as implemented this introduces the n^n rather than n! complexity, because it does not solve the n-rooks problem by default
+--
 
 newtype X = X {unX :: Natural}
     deriving stock (Generic)
