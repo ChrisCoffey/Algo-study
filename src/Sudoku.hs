@@ -1,9 +1,11 @@
 module Sudoku where
 
+import qualified Prelude
 import Protolude
 import Data.Maybe (fromJust)
 import qualified Data.Vector as V
 
+-- Uses 0 to mark unknown cells
 type Board = V.Vector Int
 type Box = V.Vector Int
 type Row = V.Vector Int
@@ -13,6 +15,38 @@ type Column = V.Vector Int
 newtype BoxNum = BoxNum Int
 newtype ColNum = ColNum Int
 newtype RowNum = RowNum Int
+
+-- Solves a Sudoku puzzle by reducing the initial choices, then generating all
+-- possible permutations from the grid, then selecting out the valid one.
+solvePuzzle ::
+    Board
+    -> Board
+solvePuzzle board = let
+    -- convert the puzzle to the possible choices
+    -- keep all cells with a single choice as-is
+    -- Algorithm operates on the choices themselves
+    possibleSolutions = choicePermutations . V.toList $ toChoices board
+    in fromJust . find solved $ V.fromList <$> possibleSolutions
+    where
+        choicePermutations :: [[Int]] -> [[Int]]
+        choicePermutations ([x]:rest) = (x:) <$> choicePermutations rest
+        choicePermutations (xs:rest) = let
+            remainder = choicePermutations rest
+            perms = (\x -> (x:) <$> remainder) <$> xs
+            in concat perms
+
+solved ::
+    Board
+    -> Bool
+solved board = let
+    rows = fmap getValues $ getRow . RowNum <$> [0..8]
+    columns = fmap getValues $ getCol . ColNum <$> [0..8]
+    boxes = fmap getValues $ getBox . BoxNum <$> [0..8]
+    in all correct $ rows <> boxes <> columns
+    where
+        correct = (== [1..9]) . sort . V.toList
+        getValues :: V.Vector Int -> V.Vector Int
+        getValues = fmap (board V.!)
 
 -- Helper for pulling a specific box from the baord
 getBox ::
@@ -48,7 +82,8 @@ getCol (ColNum cNum) =
     where
         seedCol = V.fromList [0,9..72]
 
--- Determines the available values for each index
+-- Determines the available values for each index. This a
+-- automatically solves all single-choice empty cells
 toChoices ::
     Board
     -> V.Vector [Int]
