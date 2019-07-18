@@ -7,4 +7,4 @@ import Sudoku
 
 main :: IO ()
 main =
-    putStr . (show :: Int -> Text) . length $ nQueens4 20
+    putStr . (show :: Maybe Board -> Text) . solvePuzzle $ fst testPuzzle

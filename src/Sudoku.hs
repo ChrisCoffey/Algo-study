@@ -21,21 +21,25 @@ newtype RowNum = RowNum Int
 -- possible permutations from the grid, then selecting out the valid one.
 solvePuzzle ::
     Board
-    -> Board
+    -> Maybe Board
 solvePuzzle board = let
     -- convert the puzzle to the possible choices
     -- keep all cells with a single choice as-is
     -- Algorithm operates on the choices themselves
-    possibleSolutions = choicePermutations . V.toList $ toChoices board
-    in fromJust . find solved $ V.fromList <$> possibleSolutions
-    where
-        choicePermutations :: [[Int]] -> [[Int]]
-        choicePermutations [] = []
-        choicePermutations ([x]:rest) = (x:) <$> choicePermutations rest
-        choicePermutations (xs:rest) = let
-            remainder = choicePermutations rest
-            perms = (\x -> (x:) <$> remainder) <$> xs
-            in concat perms
+    boardOptions = V.toList $ toChoices board
+    -- Note that this will work but results in an enormous number of permutations, since
+    -- each possible value is a branch. We'll need some way to iterate this...
+    possibleSolutions = choicePermutations (trace (show boardOptions:: Text) boardOptions)
+    in find solved $ V.fromList <$> (trace (show $ length possibleSolutions :: Text) possibleSolutions)
+
+choicePermutations :: [[Int]] -> [[Int]]
+choicePermutations [] = Prelude.error "empty list. That should not happen"
+choicePermutations [xs] = (:[]) <$> xs
+choicePermutations ([x]:rest) = (x:) <$> choicePermutations rest
+choicePermutations (xs:rest) = let
+    remainder = choicePermutations rest
+    perms = (\x -> (x:) <$> remainder) <$> xs
+    in concat perms
 
 solved ::
     Board
@@ -93,18 +97,32 @@ toChoices board =
     indexChoices <$> V.indexed board
     where
         indexChoices (idx, v)
-            | v == 0 = missingColValues (trace ("choice: " <> show idx :: Text) idx) <> missingRowValues idx <> missingBoxValues idx
+            | v == 0 = let
+                knownValues = colValues idx <> rowValues idx <> boxValues idx
+                in [x | x <- [1..9], x `notElem` knownValues]
             | otherwise =  [v]
 
-        missingRowValues idx = let
+        rowValues idx = let
             row = getRow . RowNum $ idx `div` 9
-            in filter (not . (`V.elem` row)) [1..9]
-        missingColValues idx = let
+            rowVals = (board V.!) <$> row
+            in filter (`V.elem` rowVals) [1..9]
+        colValues idx = let
             col = getCol . ColNum $ idx `mod` 9
-            in filter (not . (`V.elem` col)) [1..9]
-        missingBoxValues idx = let
+            colVals = (board V.!) <$> col
+            in filter (`V.elem` colVals) [1..9]
+        boxValues idx = let
             box = fromJust . find (idx `elem`) $ getBox . BoxNum <$> [0..8]
-            in filter (not . (`V.elem` box)) [1..9]
+            boxVals = (board V.!) <$> box
+            in filter (`V.elem` boxVals) [1..9]
+
+choicesToBoard ::
+    V.Vector [Int]
+    -> Board
+choicesToBoard choices =
+    toN <$> choices
+    where
+        toN [x] = x
+        toN xs = 0
 
 -- https://e-olio.com/wp-content/uploads/2012/10/sudoku025done.png
 testPuzzle :: (Board, Board)
