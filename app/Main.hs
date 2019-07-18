@@ -2,6 +2,7 @@ module Main where
 
 import Protolude
 import NQueens
+import Sudoku
 
 
 main :: IO ()

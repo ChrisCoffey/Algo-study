@@ -5,6 +5,7 @@ import Protolude
 import Data.Maybe (fromJust)
 import qualified Data.Vector as V
 
+
 -- Uses 0 to mark unknown cells
 type Board = V.Vector Int
 type Box = V.Vector Int
@@ -29,6 +30,7 @@ solvePuzzle board = let
     in fromJust . find solved $ V.fromList <$> possibleSolutions
     where
         choicePermutations :: [[Int]] -> [[Int]]
+        choicePermutations [] = []
         choicePermutations ([x]:rest) = (x:) <$> choicePermutations rest
         choicePermutations (xs:rest) = let
             remainder = choicePermutations rest
@@ -46,7 +48,7 @@ solved board = let
     where
         correct = (== [1..9]) . sort . V.toList
         getValues :: V.Vector Int -> V.Vector Int
-        getValues = fmap (board V.!)
+        getValues = fmap (\idx -> board V.! idx)
 
 -- Helper for pulling a specific box from the baord
 getBox ::
@@ -62,7 +64,7 @@ getBox (BoxNum bNum) =
                         18,19,20
                         ]
     -- The offsets for each box, from 0.
-    boxOffsets = V.fromList [0, 3, 6, 27, 30, 33, 54]
+    boxOffsets = V.fromList [0, 3, 6, 27, 30, 33, 54, 57, 60]
 
 -- Helper for pulling a specific row from the board
 getRow ::
@@ -90,7 +92,9 @@ toChoices ::
 toChoices board =
     indexChoices <$> V.indexed board
     where
-        indexChoices (idx, v) = undefined
+        indexChoices (idx, v)
+            | v == 0 = missingColValues (trace ("choice: " <> show idx :: Text) idx) <> missingRowValues idx <> missingBoxValues idx
+            | otherwise =  [v]
 
         missingRowValues idx = let
             row = getRow . RowNum $ idx `div` 9
@@ -101,3 +105,25 @@ toChoices board =
         missingBoxValues idx = let
             box = fromJust . find (idx `elem`) $ getBox . BoxNum <$> [0..8]
             in filter (not . (`V.elem` box)) [1..9]
+
+-- https://e-olio.com/wp-content/uploads/2012/10/sudoku025done.png
+testPuzzle :: (Board, Board)
+testPuzzle = (V.fromList [0,0,0,0,0,9,8,0,0 -- input
+                         ,0,1,8,4,0,0,0,2,0
+                         ,0,0,4,0,7,0,0,0,0
+                         ,0,0,0,0,0,6,0,0,0
+                         ,6,0,0,0,0,0,0,5,0
+                         ,0,0,0,1,8,0,7,0,2
+                         ,0,5,1,8,0,0,0,9,3
+                         ,9,7,0,0,3,0,0,0,4
+                         ,0,3,0,0,6,0,0,0,0]
+             ,V.fromList [5,6,3,2,1,9,8,4,7 -- solved
+                         ,7,1,8,4,5,3,9,2,6
+                         ,2,9,4,6,7,8,3,1,5
+                         ,1,2,5,7,9,6,4,3,8
+                         ,6,8,7,3,4,2,1,5,9
+                         ,3,4,9,1,8,5,7,6,2
+                         ,4,5,1,8,2,7,6,9,3
+                         ,9,7,6,5,3,1,2,8,4
+                         ,8,3,2,9,6,4,5,7,1]
+            )
