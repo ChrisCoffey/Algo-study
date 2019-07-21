@@ -2,9 +2,10 @@ module Sudoku where
 
 import qualified Prelude
 import Protolude
+import Data.Foldable (minimumBy)
 import Data.Maybe (fromJust)
+import Data.Ord (comparing)
 import qualified Data.Vector as V
-
 
 -- Uses 0 to mark unknown cells
 type Board = V.Vector Int
@@ -17,42 +18,76 @@ newtype BoxNum = BoxNum Int
 newtype ColNum = ColNum Int
 newtype RowNum = RowNum Int
 
--- Solves a Sudoku puzzle by reducing the initial choices, then generating all
--- possible permutations from the grid, then selecting out the valid one.
+-- This works by first attempting to solve the board entirely through constraint
+-- propagation. In the event that does not work, it chooses the unfilled cell with the
+-- smallest number of valid choices and attempts to solve after selecting each choice.
+-- This is a DFS after making a choice.
 solvePuzzle ::
     Board
     -> Maybe Board
-solvePuzzle board = let
-    -- convert the puzzle to the possible choices
-    -- keep all cells with a single choice as-is
-    -- Algorithm operates on the choices themselves
-    boardOptions = V.toList $ toChoices board
-    -- Note that this will work but results in an enormous number of permutations, since
-    -- each possible value is a branch. We'll need some way to iterate this...
-    possibleSolutions = choicePermutations (trace (show boardOptions:: Text) boardOptions)
-    in find solved $ V.fromList <$> (trace (show $ length possibleSolutions :: Text) possibleSolutions)
+solvePuzzle board
+    | solved board = Just board
+    | not (noContradicton board) = Nothing
+    | any null choices = Nothing
+    | any ((> 1) . length) choices = search
+    | otherwise = solvePuzzle $ choicesToBoard choices
+    where
+        choices = toChoices board
+        search = let
+            smallestPendingCell = minimumBy (comparing (length . snd)) . V.filter ((> 1) . length . snd) $ V.indexed choices
+            branches = (choices V.//) . (:[]) . (fst smallestPendingCell,) . (:[]) <$> snd smallestPendingCell
+            in head . catMaybes $ solvePuzzle . choicesToBoard  <$> branches
 
-choicePermutations :: [[Int]] -> [[Int]]
-choicePermutations [] = Prelude.error "empty list. That should not happen"
-choicePermutations [xs] = (:[]) <$> xs
-choicePermutations ([x]:rest) = (x:) <$> choicePermutations rest
-choicePermutations (xs:rest) = let
-    remainder = choicePermutations rest
-    perms = (\x -> (x:) <$> remainder) <$> xs
-    in concat perms
+-- validate some property of the entire board
+runCheck ::
+    (V.Vector Int -> Bool)
+    -> Board
+    -> Bool
+runCheck pred board = let
+    rows = fmap getValues $ getRow . RowNum <$> [0..8]
+    columns = fmap getValues $ getCol . ColNum <$> [0..8]
+    boxes = fmap getValues $ getBox . BoxNum <$> [0..8]
+    in all pred $ rows <> boxes <> columns
+    where
+        getValues :: V.Vector Int -> V.Vector Int
+        getValues = fmap (board V.!)
 
 solved ::
     Board
     -> Bool
-solved board = let
-    rows = fmap getValues $ getRow . RowNum <$> [0..8]
-    columns = fmap getValues $ getCol . ColNum <$> [0..8]
-    boxes = fmap getValues $ getBox . BoxNum <$> [0..8]
-    in all correct $ rows <> boxes <> columns
+solved = runCheck ((== [1..9]) . sort . V.toList)
+
+-- Ensures there are no duplicates
+noContradicton ::
+    Board
+    -> Bool
+noContradicton = runCheck (not . any ((> 1) . length) . group . sort . filter (> 0) . V.toList)
+
+
+-- Determines the available values for each index. This
+-- automatically solves all single-choice empty cells
+toChoices ::
+    Board
+    -> V.Vector [Int]
+toChoices board =
+    indexChoices <$> V.indexed board
     where
-        correct = (== [1..9]) . sort . V.toList
-        getValues :: V.Vector Int -> V.Vector Int
-        getValues = fmap (\idx -> board V.! idx)
+        indexChoices (idx, v)
+            | v == 0 = let
+                knownValues = colValues idx <> rowValues idx <> boxValues idx
+                in [x | x <- [1..9], x `notElem` knownValues]
+            | otherwise =  [v]
+        rowValues idx = (board V.!) <$> (getRow . RowNum $ idx `div` 9)
+        colValues idx = (board V.!)<$> ( getCol . ColNum $ idx `mod` 9 )
+        boxValues idx = (board V.!) <$> ( fromJust . find (idx `elem`) $ getBox . BoxNum <$> [0..8] )
+
+choicesToBoard ::
+    V.Vector [Int]
+    -> Board
+choicesToBoard = fmap toN
+    where
+        toN [x] = x
+        toN xs = 0
 
 -- Helper for pulling a specific box from the baord
 getBox ::
@@ -88,43 +123,11 @@ getCol (ColNum cNum) =
     where
         seedCol = V.fromList [0,9..72]
 
--- Determines the available values for each index. This a
--- automatically solves all single-choice empty cells
-toChoices ::
-    Board
-    -> V.Vector [Int]
-toChoices board =
-    indexChoices <$> V.indexed board
-    where
-        indexChoices (idx, v)
-            | v == 0 = let
-                knownValues = colValues idx <> rowValues idx <> boxValues idx
-                in [x | x <- [1..9], x `notElem` knownValues]
-            | otherwise =  [v]
-
-        rowValues idx = let
-            row = getRow . RowNum $ idx `div` 9
-            rowVals = (board V.!) <$> row
-            in filter (`V.elem` rowVals) [1..9]
-        colValues idx = let
-            col = getCol . ColNum $ idx `mod` 9
-            colVals = (board V.!) <$> col
-            in filter (`V.elem` colVals) [1..9]
-        boxValues idx = let
-            box = fromJust . find (idx `elem`) $ getBox . BoxNum <$> [0..8]
-            boxVals = (board V.!) <$> box
-            in filter (`V.elem` boxVals) [1..9]
-
-choicesToBoard ::
-    V.Vector [Int]
-    -> Board
-choicesToBoard choices =
-    toN <$> choices
-    where
-        toN [x] = x
-        toN xs = 0
 
 -- https://e-olio.com/wp-content/uploads/2012/10/sudoku025done.png
+--
+-- possible solutions: 14909066637295736586240000000, a 29 digt number
+-- Assume an option can be checked in .01 seconds
 testPuzzle :: (Board, Board)
 testPuzzle = (V.fromList [0,0,0,0,0,9,8,0,0 -- input
                          ,0,1,8,4,0,0,0,2,0
@@ -145,3 +148,42 @@ testPuzzle = (V.fromList [0,0,0,0,0,9,8,0,0 -- input
                          ,9,7,6,5,3,1,2,8,4
                          ,8,3,2,9,6,4,5,7,1]
             )
+
+-- This is a hard puzzle that requires making a guess as to which
+-- choice is the correct one
+testPuzzle2 :: (Board, Board)
+testPuzzle2 =(
+      V.fromList [
+        4,0,0,0,0,0,8,0,5,
+        0,3,0,0,0,0,0,0,0,
+        0,0,0,7,0,0,0,0,0,
+        0,2,0,0,0,0,0,6,0,
+        0,0,0,0,8,0,4,0,0,
+        0,0,0,0,1,0,0,0,0,
+        0,0,0,6,0,3,0,7,0,
+        5,0,0,2,0,0,0,0,0,
+        1,0,4,0,0,0,0,0,0]
+    , V.fromList [
+        4,1,7,3,6,9,8,2,5,
+        6,3,2,1,5,8,9,4,7,
+        9,5,8,7,2,4,3,1,6,
+        8,2,5,4,3,7,1,6,9,
+        7,9,1,5,8,6,4,3,2,
+        3,4,6,9,1,2,7,5,8,
+        2,8,9,6,4,3,5,7,1,
+        5,7,3,2,9,1,6,8,4,
+        1,6,4,8,7,5,2,9,3
+    ]
+    )
+
+testPuzzle3 :: Board
+testPuzzle3 = V.fromList [
+    0,0,0,0,6,0,0,8,0
+    ,0,2,0,0,0,0,0,0,0
+    ,0,0,1,0,0,0,0,0,0
+    ,0,7,0,0,0,0,1,0,2
+    ,5,0,0,0,3,0,0,0,0
+    ,0,0,0,0,0,0,4,0,0
+    ,0,0,4,2,0,1,0,0,0
+    ,3,0,0,7,0,0,6,0,0
+    ,0,0,0,0,0,0,0,5,0]
