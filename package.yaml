@@ -28,6 +28,7 @@ dependencies:
 - containers
 - unordered-containers
 - hashable
+- array
 
 default-extensions:
   MultiParamTypeClasses
