@@ -66,7 +66,15 @@ substrCount_Wrong _ s
         checkAllSame = all (\c -> c == Data.List.head s)
         remainder = tail s
 
--- Works but inefficient
+-- To properly find all of the valid special strings regardless of where they're located within the parent string, you need to write something like:
+-- `length . filter isSpecial . allSubStrings`
+--
+-- That provides two clear sub-problems to address: 1) check if a string is special and 2) find all substrings
+-- The second problem, finding all the substrings can further be broken down into: 1) Find all substrings of length `N` and 2) Find all possible substring lengths for string **S**
+--
+-- I'll share some code for this in a moment, but based on the problem description and the basic algorithm above, it should be obvious that this will produce correct answers.
+-- However, will it produce correct answers regardless of the input size?
+-- Generating all possible substrings is effectively an `O(n^2)` propostion
 
 -- Generate all subsequences of length N from the source string
 slidingWindow ::
@@ -99,7 +107,7 @@ subseqs :: String -> [String]
 subseqs str =
     concatMap (slidingWindow str) [1..length str]
 
--- Works and efficient (?)
+-- Works and efficient
 
 subStrCountFast ::
     String
@@ -112,6 +120,7 @@ subStrCountFast str =
         runs = encodeRuns str
 
         runScores = Data.List.sum $ runSubStrs <$> runs
+        runSubStrs (_, x) = (x * (x+1)) `div` 2
 
 
 countPalindromes ::
@@ -128,11 +137,6 @@ countPalindromes ((a, an):(b,1):(c,cn):rest)
     | otherwise = countPalindromes ((b,1):(c,cn):rest)
 countPalindromes (a:b:c:rest) = countPalindromes (b:c:rest)
 countPalindromes _ = 0
-
-runSubStrs ::
-    (Char, Int)
-    -> Int
-runSubStrs (_, x) = (x * (x+1)) `div` 2
 
 encodeRuns ::
     String
