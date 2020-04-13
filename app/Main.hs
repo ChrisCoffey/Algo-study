@@ -4,7 +4,7 @@ import Protolude
 import NQueens
 import Sudoku
 import CountTriplets
-import FradulentActivity
+import qualified FradulentActivity
 
 
 main :: IO ()
