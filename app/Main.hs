@@ -5,8 +5,9 @@ import NQueens
 import Sudoku
 import CountTriplets
 import qualified FradulentActivity
+import qualified ClimbingLeaderboard
 
 
 main :: IO ()
 main =
-    FradulentActivity.main
+   ClimbingLeaderboard.main

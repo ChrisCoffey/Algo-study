@@ -1,4 +1,4 @@
-module DNAHealth where
+module ClimbingLeaderboard where
 
 import Protolude hiding (hPutStrLn, getLine)
 import Prelude (String, read)
@@ -9,7 +9,7 @@ import System.Environment
 
 -- Complete the climbingLeaderboard function below.
 climbingLeaderboard scores alice = let
-    rankReversed = reverse $ denseRank scores
+    rankReversed = reverse $ denseRank' scores
     (_, alicesRanks) = foldl' compute (rankReversed, []) alice
     in reverse alicesRanks
     where
@@ -22,6 +22,16 @@ climbingLeaderboard scores alice = let
 
 denseRank :: [Int] -> [(Int, Int)]
 denseRank = zip [1..] . fmap Data.List.head . group
+
+denseRank' :: [(Int, Int)] -> [Int] -> [(Int, Int)]
+denseRank' [] (x:xs) = denseRank' [(1,x)] xs
+denseRank' [] [] = []
+denseRank' ranks@((r, a):_) (x:xs) =
+    | x == a = denseRank' ranks xs
+    | otherwise = denseRank' ((r+1, x):ranks) xs
+denseRank' ranks@((r, a):_) [x]
+    | x == a = reverse ranks
+    | otherwise = reverse $ (r+1, x):ranks
 
 sliceScores :: Int -> [(Int, Int)] -> ([(Int, Int)], [(Int, Int)])
 sliceScores aliceScore = Data.List.partition ( (<= aliceScore). snd)
@@ -38,6 +48,7 @@ main = do
     stdout <- getEnv "OUTPUT_PATH"
     fptr <- openFile stdout WriteMode
 
+    System.IO.putStrLn "Reading"
     scoresCount <- readLn :: IO Int
 
     scoresTemp <- getLine
@@ -52,6 +63,7 @@ main = do
 
     let result = climbingLeaderboard scores alice
 
+    System.IO.putStrLn "Working"
     hPutStrLn fptr $ intercalate "\n" $ Data.List.map (\x -> show x) $ result
 
     hFlush fptr
