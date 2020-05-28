@@ -65,15 +65,6 @@ def computeOffset(x,y, r)
     else
       [x - distanceToMove, y]
     end
-  # left side
-  elsif x == ll_x && y != ul_y && y != ll_y
-    distanceFromLowerLeft = ll_y - y
-    distanceToMove = distanceFromLowerLeft > rotationDistance ? rotationDistance : (rotationDistance - distanceFromLowerLeft)
-    if distanceToMove > distanceFromLowerLeft
-      computeOffset (x+1), ll_y, (distanceToMove -1)
-    else
-      [x, y + distanceToMove]
-    end
   # bottom
   elsif y == ll_y
     distanceFromLowerRight = lr_x - x
@@ -82,6 +73,15 @@ def computeOffset(x,y, r)
       computeOffset lr_x, (y-1), (distanceToMove -1)
     else
       [x + distanceToMove, y]
+    end
+  # left side
+  elsif x == ll_x && y != ul_y && y != ll_y
+    distanceFromLowerLeft = ll_y - y
+    distanceToMove = distanceFromLowerLeft > rotationDistance ? rotationDistance : (rotationDistance - distanceFromLowerLeft)
+    if distanceToMove > distanceFromLowerLeft
+      computeOffset (x+1), ll_y, (distanceToMove -1)
+    else
+      [x, y + distanceToMove]
     end
   # right side
   elsif x == ur_x && y != lr_y && y != ur_y
