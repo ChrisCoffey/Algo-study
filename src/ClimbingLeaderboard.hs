@@ -9,7 +9,7 @@ import System.Environment
 
 -- Complete the climbingLeaderboard function below.
 climbingLeaderboard scores alice = let
-    rankReversed = reverse $ denseRank' scores
+    rankReversed = reverse $ denseRank' scores []
     (_, alicesRanks) = foldl' compute (rankReversed, []) alice
     in reverse alicesRanks
     where
@@ -26,7 +26,7 @@ denseRank = zip [1..] . fmap Data.List.head . group
 denseRank' :: [(Int, Int)] -> [Int] -> [(Int, Int)]
 denseRank' [] (x:xs) = denseRank' [(1,x)] xs
 denseRank' [] [] = []
-denseRank' ranks@((r, a):_) (x:xs) =
+denseRank' ranks@((r, a):_) (x:xs)
     | x == a = denseRank' ranks xs
     | otherwise = denseRank' ((r+1, x):ranks) xs
 denseRank' ranks@((r, a):_) [x]
@@ -61,7 +61,7 @@ main = do
 
     let alice = Data.List.map (read :: String -> Int) . Data.List.words $ aliceTemp
 
-    let result = climbingLeaderboard scores alice
+    let result = [1] -- climbingLeaderboard scores alice
 
     System.IO.putStrLn "Working"
     hPutStrLn fptr $ intercalate "\n" $ Data.List.map (\x -> show x) $ result
