@@ -21,10 +21,11 @@ end
 def matrixRotation(matrix, r)
   resultMatrix = Array.new($m) { |_| Array.new($n) }
 
-  (0..$m-1).each do |i|
-    (0..$n-1).each do |j|
-      x,y = computeOffset i, j, r
-      resultMatrix[y][x] = matrix[i][j]
+  (0..$m-1).each do |row|
+    (0..$n-1).each do |col|
+      x,y = computeOffset col, row, r
+      puts [matrix[row][col], row, col, y, x].inspect
+      resultMatrix[y][x] = matrix[row][col]
     end
   end
 
@@ -50,65 +51,84 @@ def computeOffset(x,y, r)
   perimeter = 2*( ($m-lay) + ($n-lay) )
   rotationDistance = r % perimeter
 
-  puts [x,y,r,rotationDistance, lay].inspect
+  performRotation x, y, rotationDistance, {
+    ul: {x: ul_x, y: ul_y},
+    ll: {x: ll_x, y: ll_y},
+    lr: {x: lr_x, y: lr_y},
+    ur: {x: ur_x, y: ur_y}
+    }
+end
+
   # determine where the point is, then move it counter-clockwise until either
   #   a) r == 0. This means the new location is on this row
   #   b) it reaches a boundary and needs to move in the next direction. In this case
   #      recursively call computeOffset with the new x,y, & remaining r
 
+  # how to handle corners?
+  # corners count as part of the horizontal
+  # Move it around the perimeter until distance = 0, using "jumps" rather than decrementing everything by 1
+def performRotation(x, y, rotationDistance, coordinates)
+  puts [x,y,rotationDistance].inspect
   # top row
-  if y == ul_y
-    distanceFromUpperLeft = x - ul_x
-    distanceToMove = distanceFromUpperLeft > rotationDistance ? rotationDistance : (rotationDistance - distanceFromUpperLeft)
-    if distanceToMove > distanceFromUpperLeft
-      computeOffset ul_x, (y+1), (distanceToMove - 1)
-    else
-      [x - distanceToMove, y]
+  if y == coordinates[:ul][:y]
+    distanceFromUpperLeft = x - coordinates[:ul][:x]
+    distanceToMove = distanceFromUpperLeft >= rotationDistance ? rotationDistance : (rotationDistance - distanceFromUpperLeft)
+
+    # Move to the next edge
+    if distanceToMove > distanceFromUpperLeft # if its greater, rotate through
+      performRotation coordinates[:ul][:x], (y+1), (distanceToMove -1), coordinates
+    elsif distanceToMove < distanceFromUpperLeft
+      return [x - distanceToMove, y]
+    else # make it the corner
+      performRotation coordinates[:ul][:x], y, distanceToMove, coordinates
     end
   # bottom
-  elsif y == ll_y
-    distanceFromLowerRight = lr_x - x
-    distanceToMove = distanceFromLowerRight > rotationDistance ? rotationDistance : (rotationDistance - distanceFromLowerRight)
-    if distanceToMove > distanceFromLowerRight
-      computeOffset lr_x, (y-1), (distanceToMove -1)
-    else
-      [x + distanceToMove, y]
+  elsif y == coordinates[:ll][:y]
+    distanceFromLowerRight = coordinates[:lr][:x] - x
+    distanceToMove = distanceFromLowerRight >= rotationDistance ? rotationDistance : (rotationDistance - distanceFromLowerRight)
+
+    if distanceToMove > distanceFromLowerRight # if its greater, rotate through
+      performRotation coordinates[:lr][:x], (y-1), (distanceToMove -1), coordinates
+    elsif distanceToMove < distanceFromLowerRight # if its less, rotate less
+      return [x + distanceToMove, y]
+    else # otherwise, make it the corner
+      performRotation coordinates[:lr][:x], y, distanceToMove, coordinates
     end
   # left side
-  elsif x == ll_x && y != ul_y && y != ll_y
-    distanceFromLowerLeft = ll_y - y
-    distanceToMove = distanceFromLowerLeft > rotationDistance ? rotationDistance : (rotationDistance - distanceFromLowerLeft)
+  elsif x == coordinates[:ll][:x] && y != coordinates[:ul][:y] && y != coordinates[:ll][:y]
+    distanceFromLowerLeft = coordinates[:ll][:y] - y
+    distanceToMove = distanceFromLowerLeft >= rotationDistance ? rotationDistance : (rotationDistance - distanceFromLowerLeft)
+
     if distanceToMove > distanceFromLowerLeft
-      computeOffset (x+1), ll_y, (distanceToMove -1)
+      performRotation (x+1), coordinates[:ll][:y], (distanceToMove -1), coordinates
+    elsif distanceToMove == distanceFromLowerLeft
+      performRotation x, coordinates[:ll][:y], distanceToMove, coordinates
     else
-      [x, y + distanceToMove]
+      return [x, y + distanceToMove]
     end
   # right side
-  elsif x == ur_x && y != lr_y && y != ur_y
-    distanceFromUpperRight = y - ur_y
-    distanceToMove = distanceFromUpperRight > rotationDistance ? rotationDistance : (rotationDistance - distanceFromUpperRight)
+  elsif x == coordinates[:ur][:x] && y != coordinates[:lr][:y] && y != coordinates[:ur][:y]
+    distanceFromUpperRight = y - coordinates[:ur][:y]
+    distanceToMove = distanceFromUpperRight >= rotationDistance ? rotationDistance : (rotationDistance - distanceFromUpperRight)
+
     if distanceToMove > distanceFromUpperRight
-      computeOffset (x-1), ur_y, (distanceToMove-1)
+      performRotation (x-1), coordinates[:ur][:y], (distanceToMove -1), coordinates
+    elsif distanceToMove < distanceFromUpperRight
+      performRotation x, coordinates[:ur][:y], distanceToMove, coordinates
     else
-      [x, y - distanceToMove]
+      return [x, y - distanceToMove]
     end
   else
     puts "Failure"
   end
-
-  # how to handle corners?
-  # corners count as part of the horizontal
-  # Move it around the perimeter until distance = 0, using "jumps" rather than decrementing everything by 1
-
-  # return the new point
 end
 
 
 def layer(x,y)
   rhs,lhs = [0, $n-1]
   top,bottom = [0, $m-1]
-  xMidpoint = $n/2
-  yMidpoint = $m/2
+  xMidpoint = ($n-1)/2
+  yMidpoint = ($m-1)/2
 
   xLayer = x > xMidpoint ? lhs - x : x
   yLayer = y > yMidpoint ? bottom - y : y
@@ -117,10 +137,8 @@ def layer(x,y)
 end
 
 def printMatrix(matrix)
-  puts "\n------------------\n"
   matrix.each do |row|
-    puts row.inspect
-    #puts row.join(" ")
+    puts row.join(" ")
   end
 end
 
