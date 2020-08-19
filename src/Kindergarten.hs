@@ -17,8 +17,8 @@ import System.IO
 --
 solve :: [Int] -> Int
 solve times = let
-  counts = foldl trackNonFinishers M.empty $ zip times [1..]
-  (bestRemaining, _, _) = M.foldlWithKey' findMaximum (1, 0, -1) (trace (show counts) counts)
+  counts = foldl trackNonFinishers M.empty $ zip times [0..]
+  (bestRemaining, _, _) = M.foldlWithKey' findMaximum (1, 0, minBound :: Int) counts
   in bestRemaining
   where
     len = length times
@@ -28,22 +28,17 @@ solve times = let
     -- approach keeps the complexity at O(n)!
     -- The idea to use a constant number rather than input dependent number of update to `counts`
     -- is excellent. I should keep this pattern in mind for future problems.
-    trackNonFinishers counts (0, i) = counts
     trackNonFinishers counts (t, i)
-      | t >= len = counts
-      | t > i = let
-        startRange = len - (t - i)
-        endRange = if i == len then 1 else i + 1
-        startMarked = M.insertWith (+) startRange (-1) counts
-        in M.insertWith (+) endRange 1 startMarked
+      | t == len = counts
+      | t == 0 = counts
       | otherwise = let
-        startRange = i - (t -1)
-        endRange = if i == len then 1 else i + 1
+        startRange = (i - t+1+len) `mod` len
+        endRange = if i == (len -1) then 0 else (i + 1)
         startMarked = M.insertWith (+) startRange (-1) counts
         in M.insertWith (+) endRange 1 startMarked
 
     findMaximum (x, sum, maxSum) key value
-      | (sum + value) > maxSum = (key, sum + value, sum + value)
+      | (sum + value) > maxSum = (key +1, sum + value, sum + value)
       | otherwise = (x, sum + value, maxSum)
 
 readMultipleLinesAsStringArray :: Int -> IO [String]
@@ -55,7 +50,7 @@ readMultipleLinesAsStringArray n = do
 
 main :: IO()
 main = do
-    tTemp <- readFile "data/kinder_medium.txt"
+    tTemp <- readFile "data/kindergarten.txt"
 
     let t = fmap (read :: String -> Int) . words $ tTemp
 
