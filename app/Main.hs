@@ -6,8 +6,9 @@ import Sudoku
 import CountTriplets
 import qualified FradulentActivity
 import qualified ClimbingLeaderboard
+import qualified Kindergarten
 
 
 main :: IO ()
 main =
-   ClimbingLeaderboard.main
+   Kindergarten.main
