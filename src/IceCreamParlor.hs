@@ -1,7 +1,7 @@
 module IceCreamParlor where
 
 import Protolude
-import Prelude (read, String)
+import Prelude (read, String, words)
 -- started: Mon Mar 30 15:40:08 EDT 2020
 -- correct but inefficient: Mon Mar 30 16:08:32 EDT 2020
 
@@ -92,6 +92,6 @@ main = do
 
         costTemp <- System.IO.getLine
 
-        let cost = Data.List.map (read :: String -> Int) . words $ costTemp
+        let cost = Data.List.map (read :: String -> Int) . Prelude.words $ costTemp
 
         whatFlavors cost money M.empty 1

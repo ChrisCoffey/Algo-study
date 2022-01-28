@@ -15,7 +15,9 @@ biggerIsGreater w =
   where
     wSeq = S.fromList w
 
-nextPermutation :: [Char] -> S.Seq Char -> [Char]
+nextPermutation :: [Char] -- ^
+  -> S.Seq Char -- ^
+  -> [Char]
 nextPermutation rhs word =
   -- Working from the rhs of the word
   case S.viewr word of
@@ -29,7 +31,7 @@ nextPermutation rhs word =
           -- swapping with the first char to the left of c smaller than c
           else let
           -- reverse the rhs to guarantee that this is the next largest permutation
-            (lessThan, (swapElem:greaterThan)) = span (<= neighbor) $ reverse (c:rhs)
+            (lessThan, swapElem:greaterThan) = span (<= neighbor) $ reverse (c:rhs)
             in toList untouched <> [swapElem] <> lessThan <> (neighbor:greaterThan)
 
 
